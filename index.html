@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🌌 Galaxy Generator</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#000;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;}
+  canvas{display:block;}
+
+  #ui{
+    position:fixed;top:20px;left:20px;z-index:10;
+    color:#cdd6ff;width:280px;
+  }
+  #ui h1{
+    font-size:1.05rem;font-weight:700;letter-spacing:1px;
+    background:linear-gradient(135deg,#a78bfa,#60a5fa,#f472b6);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:4px;
+  }
+  #ui .sub{font-size:0.7rem;color:#7b85b8;margin-bottom:16px;}
+
+  .panel{
+    background:rgba(10,8,30,0.55);border:1px solid rgba(167,139,250,0.18);
+    border-radius:14px;padding:16px;backdrop-filter:blur(10px);
+    margin-bottom:12px;
+  }
+  .ctrl{margin-bottom:14px;}
+  .ctrl:last-child{margin-bottom:0;}
+  .ctrl label{
+    display:flex;justify-content:space-between;font-size:0.7rem;color:#9aa3d8;
+    margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;
+  }
+  .ctrl label span{color:#c4b5fd;font-weight:600;}
+
+  input[type=range]{
+    width:100%;height:4px;background:rgba(167,139,250,0.2);
+    border-radius:4px;outline:none;-webkit-appearance:none;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+    background:linear-gradient(135deg,#a78bfa,#60a5fa);cursor:pointer;
+    box-shadow:0 0 8px rgba(167,139,250,0.6);
+  }
+
+  .color-row{display:flex;gap:10px;align-items:center;}
+  input[type=color]{
+    width:36px;height:28px;border:1px solid rgba(255,255,255,0.15);
+    border-radius:6px;background:transparent;cursor:pointer;
+  }
+  .color-row span{font-size:0.72rem;color:#9aa3d8;}
+
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+  button{
+    flex:1;background:linear-gradient(135deg,rgba(167,139,250,0.25),rgba(96,165,250,0.25));
+    border:1px solid rgba(167,139,250,0.35);color:#e0e4ff;
+    padding:9px 12px;border-radius:10px;font-size:0.74rem;font-weight:600;
+    cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;white-space:nowrap;
+  }
+  button:hover{
+    background:linear-gradient(135deg,rgba(167,139,250,0.4),rgba(96,165,250,0.4));
+    box-shadow:0 0 16px rgba(167,139,250,0.3);
+    transform:translateY(-1px);
+  }
+  button:active{transform:scale(0.96);}
+
+  #stats{
+    position:fixed;bottom:20px;left:20px;z-index:10;
+    font-size:0.68rem;color:#5d669c;letter-spacing:0.3px;
+  }
+  #stats b{color:#9aa3d8;}
+
+  #toggle-ui{
+    position:fixed;top:20px;right:20px;z-index:10;
+    background:rgba(10,8,30,0.55);border:1px solid rgba(167,139,250,0.18);
+    color:#cdd6ff;width:38px;height:38px;border-radius:10px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;
+    backdrop-filter:blur(10px);transition:all 0.2s;
+  }
+  #toggle-ui:hover{border-color:rgba(167,139,250,0.5);}
+
+  #hint{
+    position:fixed;bottom:20px;right:20px;z-index:10;
+    font-size:0.68rem;color:#5d669c;text-align:right;
+  }
+
+  @media(max-width:640px){
+    #ui{width:calc(100vw - 40px);max-width:280px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <h1>🌌 Galaxy Generator</h1>
+  <div class="sub">Every seed creates a unique spiral galaxy</div>
+
+  <div class="panel">
+    <div class="ctrl">
+      <label>Stars <span id="v-count">90,000</span></label>
+      <input type="range" id="count" min="5000" max="200000" step="1000" value="90000"/>
+    </div>
+    <div class="ctrl">
+      <label>Radius <span id="v-radius">5.5</span></label>
+      <input type="range" id="radius" min="2" max="12" step="0.1" value="5.5"/>
+    </div>
+    <div class="ctrl">
+      <label>Spiral Arms <span id="v-branches">4</span></label>
+      <input type="range" id="branches" min="2" max="9" step="1" value="4"/>
+    </div>
+    <div class="ctrl">
+      <label>Spin <span id="v-spin">1.2</span></label>
+      <input type="range" id="spin" min="-3" max="3" step="0.1" value="1.2"/>
+    </div>
+    <div class="ctrl">
+      <label>Randomness <span id="v-randomness">0.4</span></label>
+      <input type="range" id="randomness" min="0" max="1.2" step="0.05" value="0.4"/>
+    </div>
+    <div class="ctrl">
+      <label>Star Size <span id="v-size">0.018</span></label>
+      <input type="range" id="size" min="0.005" max="0.05" step="0.001" value="0.018"/>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ctrl">
+      <div class="color-row">
+        <input type="color" id="colorInside" value="#ff8a3d"/>
+        <span>Core color</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <div class="color-row">
+        <input type="color" id="colorOutside" value="#3d6bff"/>
+        <span>Edge color</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="btn-row">
+      <button onclick="randomize()">🎲 Random Galaxy</button>
+      <button onclick="toggleSpin()" id="spin-btn">⏸ Pause Spin</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button onclick="saveScreenshot()">📸 Save PNG</button>
+      <button onclick="resetDefaults()">↺ Reset</button>
+    </div>
+  </div>
+</div>
+
+<div id="toggle-ui" onclick="toggleUI()">👁</div>
+
+<div id="stats">
+  <b id="fps">60</b> fps · <b id="star-count">90,000</b> stars rendered
+</div>
+<div id="hint">Drag to orbit · Scroll to zoom</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ───────────────────────────────────────────────────────────────────────────
+// Renderer / Scene / Camera
+// ───────────────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(4.5, 3.5, 6.5);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.target.set(0, 0, 0);
+controls.minDistance = 1.5;
+controls.maxDistance = 40;
+
+// Faint deep-space backdrop stars (separate from the galaxy itself)
+(function buildBackdrop() {
+  const count = 2000;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 30 + Math.random() * 40;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos((Math.random() * 2) - 1);
+    positions[i*3]     = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3 + 2] = r * Math.cos(phi);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.06, color: 0x445577, transparent: true, opacity: 0.5, depthWrite: false });
+  scene.add(new THREE.Points(geo, mat));
+})();
+
+// ───────────────────────────────────────────────────────────────────────────
+// Galaxy generation — classic spiral-arm particle technique
+// ───────────────────────────────────────────────────────────────────────────
+const params = {
+  count: 90000,
+  radius: 5.5,
+  branches: 4,
+  spin: 1.2,
+  randomness: 0.4,
+  randomnessPower: 3,
+  size: 0.018,
+  colorInside: '#ff8a3d',
+  colorOutside: '#3d6bff'
+};
+
+let galaxyGeometry = null;
+let galaxyMaterial = null;
+let galaxyPoints = null;
+
+function generateGalaxy() {
+  // Dispose previous geometry/material before rebuilding (avoid GPU memory leaks)
+  if (galaxyPoints !== null) {
+    galaxyGeometry.dispose();
+    galaxyMaterial.dispose();
+    scene.remove(galaxyPoints);
+  }
+
+  const { count, radius, branches, spin, randomness, randomnessPower, size } = params;
+
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const scales = new Float32Array(count);
+
+  const colorInside = new THREE.Color(params.colorInside);
+  const colorOutside = new THREE.Color(params.colorOutside);
+
+  for (let i = 0; i < count; i++) {
+    const i3 = i * 3;
+
+    const r = Math.pow(Math.random(), 1.5) * radius; // denser toward the core
+    const branchAngle = ((i % branches) / branches) * Math.PI * 2;
+    const spinAngle = r * spin;
+
+    const randomPow = Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
+    const randomX = randomPow * randomness * r;
+    const randomY = (Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1)) * randomness * r * 0.3;
+    const randomZ = (Math.pow(Math.random(), randomnessPower) * (Math.random() < 0.5 ? 1 : -1)) * randomness * r;
+
+    positions[i3]     = Math.cos(branchAngle + spinAngle) * r + randomX;
+    positions[i3 + 1] = randomY;
+    positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * r + randomZ;
+
+    const mixed = colorInside.clone();
+    mixed.lerp(colorOutside, r / radius);
+    colors[i3] = mixed.r;
+    colors[i3 + 1] = mixed.g;
+    colors[i3 + 2] = mixed.b;
+
+    scales[i] = Math.random();
+  }
+
+  galaxyGeometry = new THREE.BufferGeometry();
+  galaxyGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  galaxyMaterial = new THREE.PointsMaterial({
+    size: size,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexColors: true,
+    transparent: true
+  });
+
+  galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
+  scene.add(galaxyPoints);
+
+  document.getElementById('star-count').textContent = count.toLocaleString();
+}
+
+generateGalaxy();
+
+// ───────────────────────────────────────────────────────────────────────────
+// UI wiring
+// ───────────────────────────────────────────────────────────────────────────
+function bindSlider(id, paramKey, displayId, decimals) {
+  const el = document.getElementById(id);
+  const disp = document.getElementById(displayId);
+  el.addEventListener('input', () => {
+    const val = parseFloat(el.value);
+    params[paramKey] = val;
+    disp.textContent = decimals !== undefined ? val.toFixed(decimals) : val.toLocaleString();
+    generateGalaxy();
+  });
+}
+
+bindSlider('count', 'count', 'v-count', 0);
+bindSlider('radius', 'radius', 'v-radius', 1);
+bindSlider('branches', 'branches', 'v-branches', 0);
+bindSlider('spin', 'spin', 'v-spin', 1);
+bindSlider('randomness', 'randomness', 'v-randomness', 2);
+bindSlider('size', 'size', 'v-size', 3);
+
+document.getElementById('colorInside').addEventListener('input', e => {
+  params.colorInside = e.target.value;
+  generateGalaxy();
+});
+document.getElementById('colorOutside').addEventListener('input', e => {
+  params.colorOutside = e.target.value;
+  generateGalaxy();
+});
+
+function syncSlidersFromParams() {
+  document.getElementById('count').value = params.count;
+  document.getElementById('v-count').textContent = params.count.toLocaleString();
+  document.getElementById('radius').value = params.radius;
+  document.getElementById('v-radius').textContent = params.radius.toFixed(1);
+  document.getElementById('branches').value = params.branches;
+  document.getElementById('v-branches').textContent = params.branches;
+  document.getElementById('spin').value = params.spin;
+  document.getElementById('v-spin').textContent = params.spin.toFixed(1);
+  document.getElementById('randomness').value = params.randomness;
+  document.getElementById('v-randomness').textContent = params.randomness.toFixed(2);
+  document.getElementById('size').value = params.size;
+  document.getElementById('v-size').textContent = params.size.toFixed(3);
+  document.getElementById('colorInside').value = params.colorInside;
+  document.getElementById('colorOutside').value = params.colorOutside;
+}
+
+const PALETTES = [
+  ['#ff8a3d', '#3d6bff'],
+  ['#ff5ea8', '#4dd2ff'],
+  ['#ffe066', '#7c3aed'],
+  ['#5eff9d', '#0ea5e9'],
+  ['#ff6161', '#fbbf24'],
+  ['#c084fc', '#22d3ee']
+];
+
+function randomize() {
+  params.count = Math.floor(20000 + Math.random() * 150000);
+  params.radius = +(3 + Math.random() * 7).toFixed(1);
+  params.branches = Math.floor(2 + Math.random() * 7);
+  params.spin = +((Math.random() * 6) - 3).toFixed(1);
+  params.randomness = +(0.1 + Math.random() * 0.9).toFixed(2);
+  params.size = +(0.008 + Math.random() * 0.03).toFixed(3);
+  const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+  params.colorInside = palette[0];
+  params.colorOutside = palette[1];
+
+  syncSlidersFromParams();
+  generateGalaxy();
+}
+
+function resetDefaults() {
+  params.count = 90000; params.radius = 5.5; params.branches = 4;
+  params.spin = 1.2; params.randomness = 0.4; params.size = 0.018;
+  params.colorInside = '#ff8a3d'; params.colorOutside = '#3d6bff';
+  syncSlidersFromParams();
+  generateGalaxy();
+}
+
+let spinning = true;
+function toggleSpin() {
+  spinning = !spinning;
+  document.getElementById('spin-btn').textContent = spinning ? '⏸ Pause Spin' : '▶ Resume Spin';
+}
+
+function toggleUI() {
+  const ui = document.getElementById('ui');
+  ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveScreenshot() {
+  renderer.render(scene, camera); // ensure freshest frame
+  const link = document.createElement('a');
+  link.download = `galaxy-${Date.now()}.png`;
+  link.href = renderer.domElement.toDataURL('image/png');
+  link.click();
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Render loop
+// ───────────────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+let frameCount = 0, lastFpsUpdate = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  if (spinning && galaxyPoints) {
+    galaxyPoints.rotation.y += delta * 0.06;
+  }
+
+  // FPS counter (updates ~4x/sec, avoids per-frame DOM writes)
+  frameCount++;
+  if (elapsed - lastFpsUpdate > 0.25) {
+    document.getElementById('fps').textContent = Math.round(frameCount / (elapsed - lastFpsUpdate));
+    frameCount = 0;
+    lastFpsUpdate = elapsed;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ───────────────────────────────────────────────────────────────────────────
+// Resize
+// ───────────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
